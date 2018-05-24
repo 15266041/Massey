@@ -4,10 +4,10 @@ public class Main {
 
 	public static void main(String[] args) 
 	{
-		ListGenerator knn = new ListGenerator();
+		KNearestNeighbour knn = new KNearestNeighbour();
 		try 
 		{
-			knn.Run("irisdata.txt");
+			knn.Run();
 		} 
 		catch (Exception e) 
 		{

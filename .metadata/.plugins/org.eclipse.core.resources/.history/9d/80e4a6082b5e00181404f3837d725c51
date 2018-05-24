@@ -1,0 +1,11 @@
+package id15266041;
+
+public class Main {
+
+	public static void main(String[] args) 
+	{
+		kNearestNeighbour knn = new kNearestNeighbour();
+		knn.Run("irisdata.txt");
+	}
+
+}

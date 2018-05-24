@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename Java project &apos;kNearestNeighbour&apos; to &apos;Assignment&apos;&#x0D;&#x0A;- Original element: &apos;kNearestNeighbour&apos;&#x0D;&#x0A;- Renamed element: &apos;kNearestNeighbour&apos;&#x0D;&#x0A;- Update references to refactored element" description="Rename Java project &apos;kNearestNeighbour&apos;" flags="7" id="org.eclipse.jdt.ui.rename.java.project" input="=kNearestNeighbour" name="Assignment" references="true" stamp="1527038474700" version="1.0"/>
+</session>

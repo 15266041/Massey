@@ -1,0 +1,98 @@
+package id15266041;
+
+import java.awt.List;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
+
+public class kNearestNeighbour {
+	
+	//Use this class to run the knn algorithm on any set of data.
+	
+	private ArrayList<ArrayList<String>> data; //all data from the data file
+	
+	//Run is the call to run the algorithm with the file selectable via the filename parameter. 
+	public void Run(String filename) throws Exception
+	{
+		
+		data = ReadFile(filename);
+		ArrayList<ArrayList<String>> tests = RandomizeTestPoints(data); //the test data points decided upon randomly
+		for(ArrayList<String> line : tests)
+		{
+			System.out.println(line);
+		}
+		
+		System.out.println(); //remove
+		int count = 1;//remove
+		for(ArrayList<String> line : data) //remove
+		{
+			System.out.println(count + " " + line);
+			count++;
+		}
+		
+		for (int i = 0; i < 15; i++)
+		{
+			ArrayList<Float> distances = new ArrayList<Float>();
+			for (int t = 0; t<5; t++)
+			{
+				distances.add(Float.POSITIVE_INFINITY); //distances will be added if they are smaller than current distances
+														//infinity ensures first 5 get into list
+			}
+			ArrayList<String> test = tests.get(i);
+			for (int j = 0; j < 135; j++)
+			{
+			}
+		}
+		
+	}
+	
+	//takes the file input and simply reads line by line taking each line as a single data item. Puts them into a list. 
+	//appends all data item lists to a final list (data) which is returned. 
+	private ArrayList<ArrayList<String>> ReadFile(String filename) throws Exception
+	{
+		FileReader fr = new FileReader(filename);
+		BufferedReader br = new BufferedReader(fr);
+		String line;
+		ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
+		
+		while((line = br.readLine()) != null)
+		{
+			ArrayList<String> input = new ArrayList<String>(Arrays.asList(line.split(","))); //comma seperated data
+			if(input.size() > 1)
+			{
+				data.add(input);
+			}
+		}
+		br.close();
+		return data;
+	}
+	
+	//randomly selects the test data points and returns them in a list
+	private ArrayList<ArrayList<String>> RandomizeTestPoints(ArrayList<ArrayList<String>> data)
+	{
+		ArrayList<ArrayList<String>> testArray = new ArrayList<ArrayList<String>>();
+		Random random = new Random();
+		int setosaCount;
+		int versiCount;
+		int virginicaCount;
+		for(int i = 0; i < 5; i++)
+		{
+			setosaCount = random.nextInt(50);
+			testArray.add(data.get(setosaCount));
+			
+			versiCount = random.nextInt(50) + 50;
+			testArray.add(data.get(versiCount));
+			
+			virginicaCount = random.nextInt(50) + 100;
+			testArray.add(data.get(virginicaCount));
+		}
+
+		data.remove(testArray);
+		
+		return testArray;
+	}
+
+}
