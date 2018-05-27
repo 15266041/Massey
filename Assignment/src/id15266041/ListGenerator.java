@@ -1,4 +1,4 @@
-package id15266041;
+package parallel;
 
 import java.awt.List;
 import java.io.BufferedReader;

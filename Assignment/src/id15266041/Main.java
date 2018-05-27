@@ -1,4 +1,4 @@
-package id15266041;
+package parallel;
 
 public class Main {
 
@@ -7,7 +7,7 @@ public class Main {
 		KNearestNeighbour knn = new KNearestNeighbour();
 		try 
 		{
-			knn.Run();
+			knn.Run(args);
 		} 
 		catch (Exception e) 
 		{
