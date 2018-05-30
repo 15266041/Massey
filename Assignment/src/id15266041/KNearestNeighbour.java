@@ -1,4 +1,4 @@
-package parallel;
+package id15266041;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -14,24 +14,32 @@ public class KNearestNeighbour
 		int rank = MPI.COMM_WORLD.Rank();
 		int size = MPI.COMM_WORLD.Size();
 
-		float[] trainingBuffer = new float[170];
 		float[] distances = new float[15*135*2];
 		float[] testBuffer = new float[15*5];
 		float[] largetraining = new float[135*5];
 		int testLoad = 15;
-		int trainingLoad = 34;
-
-		if(rank == 3)
+		int trainingLoad = 135/size;
+		
+		//all load calculations are based on 8 processors
+		
+		int last = size-1; //rank of last process
+		int baseTrainingLoad = 135/size + 1;
+		int[] disp = new int[size]; //for scatterv disp int[]
+		int[] sendtrain = new int[size]; //for scatterv send int[]
+		
+		if(135%8 != 0 && rank != last)
 		{
-			trainingLoad = 33;
+			trainingLoad += 1;
 		}
+		
+		float[] trainingBuffer = new float[trainingLoad*5]; //instances of training points for each process
 		
 		if(rank == 0)
 		{
 			float[][] tests = ReadFile("tests.txt", 15);
 			float[][] training = ReadFile("training.txt", 135);
 			
-			//Create buffers of one dimention so I can pass them through MPI
+			//Create buffers of one dimension so I can pass them through MPI
 			
 			for(int i = 0; i < 15; i++)
 			{
@@ -48,19 +56,39 @@ public class KNearestNeighbour
 					largetraining[i*5+j] = training[i][j];
 				}
 			}
-			
 		}
 		
-		int[] disp = new int[] {0,34*5,34*10,34*15};
-		int[] sendtrain = new int[] {34*5,34*5,34*5,33*5};
+		//fill in disp and sendtrain for the scatterv method
+		
+		for(int i = 0; i<size; i++)
+		{
+			disp[i] = i*baseTrainingLoad*5;
+			if(i!=size-1)
+			{
+				sendtrain[i] = baseTrainingLoad*5;
+			}
+			else
+			{
+				sendtrain[i] = (baseTrainingLoad-1)*5; 
+			}
+		}
 		
 		MPI.COMM_WORLD.Scatterv(largetraining, 0, sendtrain, disp, MPI.FLOAT, trainingBuffer, 0,
-			34*5, MPI.FLOAT, 0);
+			baseTrainingLoad*5, MPI.FLOAT, 0);
+		
+		/*if(rank == 5)
+		{
+			for(float i : trainingBuffer)
+			{
+				System.out.println(i);
+			}
+		}*/
+		
+		MPI.COMM_WORLD.Bcast(testBuffer, 0, 15*5, MPI.FLOAT, 0); //update all processes testBuffers
 		
 		float[] localDist = new float[testLoad*trainingLoad*2];
 		
 		//indexing, i represents the test point, j the training point and k a distance plant type pair.
-		
 		
 		for(int i = 0; i < testLoad; i++)
 		{
@@ -69,42 +97,68 @@ public class KNearestNeighbour
 				float sqrDist = 0;
 				for(int k = 0; k <4; k++)
 				{
-					sqrDist += Math.pow(trainingBuffer[j*5+k] - testBuffer[i*5+k], 2);
+					sqrDist += Math.pow(trainingBuffer[j*5+k] - testBuffer[i*5+k], 2);		
 				}
-				
 				float distance = (float)Math.sqrt(sqrDist);
 				localDist[(i*2*trainingLoad)+(j*2)] = distance; //add point-point distance
 				localDist[(i*2*trainingLoad) + (j*2)+1] = trainingBuffer[j*5 + 4]; //add flower type
 			}
 		}
-
-		int[] recv = new int[]{15*34*2,15*34*2,
-				15*34*2,15*33*2};
 		
-		int[] recvdisp = new int[] {0, 30*34, 60*34, 90*34};
+		int[] recv = new int[size];
+		int[] recvdisp = new int[size];
+		for(int i = 0; i < size; i++)
+		{
+			recvdisp[i] = i * 30 * trainingLoad;
+			if(i != size-1)
+			{
+				recv[i] = 30* baseTrainingLoad;
+			}
+			else
+			{
+				recv[i] = 30 * (baseTrainingLoad-1);
+			}
+		}
 		
-		MPI.COMM_WORLD.Allgatherv(localDist, 0, 15*trainingLoad*2, MPI.FLOAT,
+		MPI.COMM_WORLD.Allgatherv(localDist, 0, 30*trainingLoad, MPI.FLOAT,
 				distances, 0, recv, recvdisp, MPI.FLOAT);
-	
-		/*
-		 * Clear up to here ")
-		 * 
-		 */
+		
+		if(rank == 1)
+		{
+			for(int i = 0; i < 15; i++)
+			{
+				for(int j = 0; j<135; j++)
+				{
+					for(int k = 0; k<2; k++)
+					{
+						System.out.println((i*135*2 + j*2 + k) + " " + distances[i*135*2 + j*2 + k]);
+					}
+				}
+			}
+			
+		}
+		
 		//find the smallest five distances
 		
-		int distLoad = 4; //split up the 15 distance groups and scatter to processes
-		if(rank == 3)
+		int distLoad = 2; //split up the 15 distance groups and scatter to processes
+		if(rank == 7)
 		{
-			distLoad = 3;
+			distLoad = 1;
 		}
 		
 		float[] dists = new float[distLoad*135*2];
 		
-		int[] sendtest = new int[] {4*135*2,4*135*2,4*135*2,3*135*2};
-		int[] disptest = new int[] {0,distLoad*135*2,distLoad*135*4,distLoad*135*6};
+		int[] sendtest = new int[] {2*135*2,2*135*2,2*135*2,2*135*2,
+				2*135*2,2*135*2,2*135*2,135*2}; //testLoad * trainingnumber * 2
+		
+		int[] disptest = new int[] {0,135*4,135*8,135*12,135*16,135*20,135*24, 135*28};
 		
 		MPI.COMM_WORLD.Scatterv(distances, 0, sendtest, disptest, MPI.FLOAT, dists, 0,
-				4*135*2, MPI.FLOAT, 0);
+				4*135, MPI.FLOAT, 0);
+		
+		/*
+		 * clear up to here
+		 */
 		
 		float[][][] localFive = new float[distLoad][5][2];
 		
@@ -118,30 +172,38 @@ public class KNearestNeighbour
 			for(int j = 0; j < 135; j++)
 			{
 				float distance = dists[i*2*135 + (j*2)];
+				
 				for(int k = 0; k <5; k++)
 				{
 					float localdist = localFive[i][k][0];
 					
+					if(localdist == Float.POSITIVE_INFINITY)
+					{
+						float[] cd = {distance, dists[i*2*135 + (j*2) + 1]};
+						localFive[i][k][0] = cd[0];
+						localFive[i][k][1] = cd[1];
+						break;
+					}
 					//array is in order, largest at [0] and smallest last. 
-					if(distance < localdist && k !=4)
+					if(distance > localdist && k !=4)
 					{
 						continue;
 					}
 					
-					if(distance >= localdist)
+					if(distance == localdist)
 					{
-						k--;
+						break;
 					}
 					
 					//shift entries to the left by one from where the current distance has been inserted.
 					float[] cd = {distance, dists[i*2*135 + (j*2) + 1]}; //current distance 
-					while (k>=0)
+					while (k<=4)
 					{
 						float[] nextDist = {localFive[i][k][0], localFive[i][k][1]};
 						localFive[i][k][0] = cd[0];
 						localFive[i][k][1] = cd[1];
 						cd = nextDist;
-						k--;
+						k++;
 					}
 					break;
 				}
@@ -158,7 +220,6 @@ public class KNearestNeighbour
 			
 			for (float[] s : d)
 			{
-				//System.out.println(s[1]);
 				if(s[1] == 1f)
 				{
 					setosa++;
@@ -167,7 +228,7 @@ public class KNearestNeighbour
 				{
 					versicolor++;
 				}
-				else
+				else if (s[1] == 3f)
 				{
 					virginica++;
 				}
@@ -178,15 +239,15 @@ public class KNearestNeighbour
 			
 			if (newMax == setosa)
 			{
-				System.out.println(testBuffer[count*5+4] + " = " + "Setosa");
+				System.out.println(rank + " " + testBuffer[(rank + 7*count)*5 + 4] + " = " + "Setosa");
 			}
 			else if (newMax == versicolor)
 			{
-				System.out.println(testBuffer[count*5+4] + " = " + "Versicolor");
+				System.out.println(rank + " " + testBuffer[(rank + 7*count)*5 + 4] + " = " + "Versicolor");
 			}
 			else
 			{
-				System.out.println(testBuffer[count*5+4] + " = " + "Verginica");
+				System.out.println(rank + " " + testBuffer[(rank + 7*count)*5 + 4] + " = " + "Verginica");
 			}
 			count++;
 		}
